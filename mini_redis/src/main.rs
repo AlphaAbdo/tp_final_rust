@@ -1,3 +1,16 @@
+mod helper;
+
+use std::{collections::HashMap, sync::Arc};
+use helper::{handle_client , Store};
+
+use tokio::{
+    net::{TcpListener},
+    sync::Mutex,
+};
+use tracing::{error, info};
+
+//pour les requestses
+
 #[tokio::main]
 async fn main() {
     // Initialiser tracing
@@ -8,14 +21,50 @@ async fn main() {
         )
         .init();
 
-    // TODO: Implémenter le serveur MiniRedis sur 127.0.0.1:7878
-    //
-    // Étapes suggérées :
-    // 1. Créer le store partagé (Arc<Mutex<HashMap<String, ...>>>)
-    // 2. Bind un TcpListener sur 127.0.0.1:7878
-    // 3. Accept loop : pour chaque connexion, spawn une tâche
-    // 4. Dans chaque tâche : lire les requêtes JSON ligne par ligne,
-    //    traiter la commande, envoyer la réponse JSON + '\n'
+    //consignes
+    {
+        //strategy pour PINg et SET, avoir le meme struct tuple
+        //expire semble close to PING et set
 
-    println!("MiniRedis - à implémenter !");
+        // TODO: Implémenter le serveur MiniRedis sur 127.0.0.1:7878
+        //
+        // Étapes suggérées :
+        // 1. Créer le store partagé (Arc<Mutex<HashMap<String, ...>>>)
+        // 2. Bind un TcpListener sur 127.0.0.1:7878
+        // 3. Accept loop : pour chaque connexion, spawn une tâche
+        // 4. Dans chaque tâche : lire les requêtes JSON ligne par ligne,
+        //    traiter la commande, envoyer la réponse JSON + '\n'
+    }   
+    
+    println!("MiniRedis - En");
+
+    let store: Store = Arc::new(Mutex::new(HashMap::new()));
+
+    let listener = TcpListener::bind("127.0.0.1:7878")
+        .await
+        .expect("impossible de démarrer le serveur sur 127.0.0.1:7878; port utilisé ??");
+
+    info!("Serveur MiniRedis démare sur 127.0.0.1:7878");
+
+    // Getrstion dur workflow
+    loop {
+        match listener.accept().await {
+            Ok((socket, addr)) => {
+                let store = Arc::clone(&store);
+
+                tokio::spawn(async move {
+                    info!("Nouveau client connecté: {}", addr);
+
+                    if let Err(err) = handle_client(socket, store).await {
+                        error!("Erreur avec le client {}: {}", addr, err);
+                    }
+
+                    info!("Client déconnecté: {}", addr);
+                });
+            }
+            Err(err) => {
+                error!("Erreur pendant accept(): {}", err);
+            }
+        }
+    }
 }
