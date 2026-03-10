@@ -220,24 +220,34 @@ pub async fn process_request(request: Request, store: &Store) -> Value {
             };
 
             let mut map = store.lock().await;
-            let entry = map.entry(key).or_insert(Entry {
-                value: "0".to_string(),
-                expires_at: None,
-            });
-
-            match entry.value.parse::<i64>() {
-                Ok(num) => {
-                    let new_val = num + 1;
-                    entry.value = new_val.to_string();
-                    json!({
-                        "status": "ok",
-                        "value": new_val
-                    })
+            
+            if let Some(entry) = map.get_mut(&key) {
+                match entry.value.parse::<i64>() {
+                    Ok(num) => {
+                        let new_val = num + 1;
+                        entry.value = new_val.to_string();
+                        json!({
+                            "status": "ok",
+                            "value": new_val
+                        })
+                    }
+                    Err(_) => json!({
+                        "status": "error",
+                        "message": "not an integer"
+                    }),
                 }
-                Err(_) => json!({
-                    "status": "error",
-                    "message": "N'est pas entier"
-                }),
+            } else {
+                map.insert(
+                    key,
+                    Entry {
+                        value: "1".to_string(),
+                        expires_at: None,
+                    },
+                );
+                json!({
+                    "status": "ok",
+                    "value": 1
+                })
             }
         }
         "DECR" => {
@@ -249,24 +259,34 @@ pub async fn process_request(request: Request, store: &Store) -> Value {
             };
 
             let mut map = store.lock().await;
-            let entry = map.entry(key).or_insert(Entry {
-                value: "0".to_string(),
-                expires_at: None,
-            });
-
-            match entry.value.parse::<i64>() {
-                Ok(num) => {
-                    let new_val = num - 1;
-                    entry.value = new_val.to_string();
-                    json!({
-                        "status": "ok",
-                        "value": new_val
-                    })
+            
+            if let Some(entry) = map.get_mut(&key) {
+                match entry.value.parse::<i64>() {
+                    Ok(num) => {
+                        let new_val = num - 1;
+                        entry.value = new_val.to_string();
+                        json!({
+                            "status": "ok",
+                            "value": new_val
+                        })
+                    }
+                    Err(_) => json!({
+                        "status": "error",
+                        "message": "not an integer"
+                    }),
                 }
-                Err(_) => json!({
-                    "status": "error",
-                    "message": "not an integer"
-                }),
+            } else {
+                map.insert(
+                    key,
+                    Entry {
+                        value: "-1".to_string(),
+                        expires_at: None,
+                    },
+                );
+                json!({
+                    "status": "ok",
+                    "value": -1
+                })
             }
         }
         "SAVE" => {
