@@ -5,6 +5,8 @@ mod tests {
     use std::sync::Arc;
     use tokio::sync::Mutex;
 
+    // Beacoup de temps Investi dans les tests, et tester les tests par d'autres tests...
+
     #[tokio::test]
     async fn test_set_get() {
         let store = Arc::new(Mutex::new(HashMap::new()));

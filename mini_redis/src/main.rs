@@ -1,11 +1,13 @@
 mod helper;
+mod verificator;
 
 use std::{collections::HashMap, sync::Arc};
-use helper::{handle_client , Store};
+use helper::{handle_client , Store,  clean_expired_keys};
 
 use tokio::{
     net::{TcpListener},
     sync::Mutex,
+    time::{interval, Duration},
 };
 use tracing::{error, info};
 
@@ -40,6 +42,18 @@ async fn main() {
 
     let store: Store = Arc::new(Mutex::new(HashMap::new()));
 
+    // Petit robot ménager : il enlève les clés expirées de temps en temps.
+    let cleanup_store = Arc::clone(&store);
+    tokio::spawn(async move {
+        let mut ticker = interval(Duration::from_secs(1));
+
+        loop {
+            ticker.tick().await;
+            clean_expired_keys(&cleanup_store).await;
+        }
+    });
+    
+    
     let listener = TcpListener::bind("127.0.0.1:7878")
         .await
         .expect("impossible de démarrer le serveur sur 127.0.0.1:7878; port utilisé ??");
